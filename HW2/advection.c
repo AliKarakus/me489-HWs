@@ -74,40 +74,21 @@ void RhsQ(solver_t *solver, tstep_t *tstep, int stage){
 mesh_t *msh = &solver->msh;
 for(int j=0; j<msh->NY; j++){
     for(int i=0; i<msh->NX; i++){
-      const int idn = j*msh->NX + i; 
-      const double unx = solver->u[2*idn + 0];
-      const double uny = solver->u[2*idn + 1];
-      // neighbor elements
-      int elmE = msh->N2N[4*idn + 0];
-      int elmN = msh->N2N[4*idn + 1];
-      int elmW = msh->N2N[4*idn + 2];
-      int elmS = msh->N2N[4*idn + 3];
+      /*
+      fill this part tp comute rhsq at every n = j*msh.NX + i
+      */
 
-      // neighbor velocities
-      double uxE = solver->u[2*elmE + 0];
-      double uyN = solver->u[2*elmN + 1];
-      double uxW = solver->u[2*elmW + 0];
-      double uyS = solver->u[2*elmS + 1];
 
-      // Find spacing just in case it is not uniform
-      double hip1 = fabs(msh->x[elmE] - msh->x[idn] ); 
-      double him1 = fabs(msh->x[idn]  - msh->x[elmW]);  
+      /* 
+      Time integration in 2 steps 
+      Step 1: Update residual
+      resq = rk4a(stage)* resq + dt*rhsq
+      Step:2 Update solution ans store
+       q = q + rk4b(stage)*resq
+      */
 
-      double hjp1 = fabs(msh->y[elmN] - msh->y[idn] );  
-      double hjm1 = fabs(msh->y[idn]  - msh->y[elmS]);  
+      // Store updated solution and 
 
-      double dfqdx = unx> 0 ? (unx*solver->q[idn]- uxW*solver->q[elmW])/him1 :  (uxE*solver->q[elmE]- unx*solver->q[idn])/hip1;
-      double dfqdy = uny> 0 ? (uny*solver->q[idn]- uyS*solver->q[elmS])/hjm1 :  (uyN*solver->q[elmN]- uny*solver->q[idn])/hjp1;
-
-      double rhsq   = -(dfqdx +dfqdy);
-
-      // Time integration i.e. resq = rk4a(stage)* resq + dt*rhsq
-      double resq = tstep->rk4a[stage]*tstep->resq[idn] + tstep->dt*rhsq; 
-      // Update q i.e. q = q 6 rk4b(stage)*resq
-      solver->q[idn]  +=  tstep->rk4b[stage]*resq;
-
-      tstep->resq[idn] = resq; 
-      tstep->rhsq[idn] = rhsq; 
     }
   }
 }
@@ -121,56 +102,16 @@ void initialCondition(solver_t *solver){
 
   for(int j=0; j<msh->NY; j++){
     for(int i=0; i<msh->NX; i++){
-      const int idn = j*msh->NX + i; 
-      const double xn = msh->x[idn]; 
-      const double yn = msh->y[idn]; 
-      const double rn = 0.15; 
-      const double xc = 0.50; 
-      const double yc = 0.75; 
-
-      solver->q[idn] = sqrt((xn-xc)*(xn-xc) + (yn-yc)*(yn-yc)) -rn;
-      solver->u[2*idn + 0] =  sin(4.0*M_PI*(xn + 0.5))*sin(4.0*M_PI*(yn + 0.5)); 
-      solver->u[2*idn + 1] =  cos(4.0*M_PI*(xn + 0.5))*cos(4.0*M_PI*(yn + 0.5)); 
+     /*
+     Create initial condition and velocity field
+     */
 
     }
   }
 
 }
 
-/*
-solver->u[2*idn + 0] = -sin(2.0*M_PI*yn)*sin(M_PI*xn)*sin(M_PI*xn); 
-solver->u[2*idn + 1] =  sin(2.0*M_PI*xn)*sin(M_PI*yn)*sin(M_PI*yn); 
-*/
 
-/* ************************************************************************** */
-tstep_t createTimeStepper(int Nnodes){
-  tstep_t tstep; 
-  tstep.Nstage = 5; 
-  tstep.resq = (double *)calloc(Nnodes,sizeof(double)); 
-  tstep.rhsq = (double *)calloc(Nnodes,sizeof(double));
-  tstep.rk4a = (double *)malloc(tstep.Nstage*sizeof(double));
-  tstep.rk4b = (double *)malloc(tstep.Nstage*sizeof(double));
-  tstep.rk4c = (double *)malloc(tstep.Nstage*sizeof(double));
-
-  tstep.rk4a[0] = 0.0; 
-  tstep.rk4a[1] = -567301805773.0/1357537059087.0; 
-  tstep.rk4a[2] = -2404267990393.0/2016746695238.0;
-  tstep.rk4a[3] = -3550918686646.0/2091501179385.0;
-  tstep.rk4a[4] = -1275806237668.0/842570457699.0;
-        
-  tstep.rk4b[0] = 1432997174477.0/9575080441755.0;
-  tstep.rk4b[1] = 5161836677717.0/13612068292357.0; 
-  tstep.rk4b[2] = 1720146321549.0/2090206949498.0;
-  tstep.rk4b[3] = 3134564353537.0/4481467310338.0;
-  tstep.rk4b[4] = 2277821191437.0/14882151754819.0;
-             
-  tstep.rk4c[0] = 0.0;
-  tstep.rk4c[1] = 1432997174477.0/9575080441755.0;
-  tstep.rk4c[2] = 2526269341429.0/6820363962896.0;
-  tstep.rk4c[3] = 2006345519317.0/3224310063776.0;
-  tstep.rk4c[4] = 2802321613138.0/2924317926251.0;
-  return tstep; 
-}
 
 /* ************************************************************************** */
 // void createMesh(struct mesh *msh){
@@ -178,57 +119,42 @@ mesh_t createMesh(char* inputFile){
 
   mesh_t msh; 
 
+  // Read required fields i.e. NX, NY, XMIN, XMAX, YMIN, YMAX
+
   msh.NX   = readInputFile(inputFile, "NX");
-  msh.NY   = readInputFile(inputFile, "NY");
-  msh.xmin = readInputFile(inputFile, "XMIN");
-  msh.xmax = readInputFile(inputFile, "XMAX");
-  msh.ymin = readInputFile(inputFile, "YMIN");
-  msh.ymax = readInputFile(inputFile, "YMAX");
+  /* 
+  Continue with other required fields
+  */
 
-
-  // msh.dx = (msh.xmax - msh.xmin) / ( msh.NX - 1 );
-  // msh.dy = (msh.ymax - msh.ymin) / ( msh.NY - 1 );
-
-#if DEBUG==1
-  printf("  The number of interior X grid points is %d\n", msh.NX);
-  printf("  The number of interior Y grid points is %d\n", msh.NY); 
-  printf("  The x grid spacing is %.4f\n", msh.dx);
-  printf("  The y grid spacing is %.4f\n", msh.dy);
-#endif
 
   msh.Nnodes = msh.NX*msh.NY;
   msh.x = (double *) malloc(msh.Nnodes*sizeof(double));
   msh.y = (double *) malloc(msh.Nnodes*sizeof(double));
+
+  /*
+  Compute Coordinates of the nodes
+  */
   for(int j=0; j<msh.NY; j++){
     for(int i=0; i<msh.NX; i++){
-      const int idn = j*msh.NX + i; 
-      msh.x[idn] = i*(msh.xmax - msh.xmin)/(msh.NX-1);
-      msh.y[idn] = j*(msh.ymax - msh.ymin)/(msh.NY-1);
+     /*
+      Complete this part
+    */
     }
   }
 
-  // Create periodic connectivity
-  msh.N2N = (int *)malloc(4*msh.Nnodes*sizeof(int)); 
+  // Create connectivity and periodic connectivity
+  /* 
+  for every node 4 connections east north west and south
+  Nothe that periodic connections require specific treatment
+  */
+  msh.N2N = (int *)malloc(4*msh.Nnodes*sizeof(int));
+
   for(int j=0; j<msh.NY; j++){
     for(int i=0; i<msh.NX; i++){
-      const int idn = j*msh.NX + i; 
-      msh.N2N[4*idn + 0] = j*msh.NX + i + 1;  
-      msh.N2N[4*idn + 1] = (j+1)*msh.NX +i;  
-      msh.N2N[4*idn + 2] = j*msh.NX +i -1;  
-      msh.N2N[4*idn + 3] = (j-1)*msh.NX +i;  
-
-      if(j==0){
-        msh.N2N[4*idn + 3] = (msh.NY-1)*msh.NX +i;  
-      }
-      if(j==(msh.NY-1)){
-        msh.N2N[4*idn + 1] = 0*msh.NX+i;  
-      }
-      if(i==0){
-        msh.N2N[4*idn + 2] = (j+1)*msh.NX + 0 -1 ; ;   
-      }
-      if(i==(msh.NX-1)){
-        msh.N2N[4*idn + 0] = j*msh.NX + i -msh.NX +1; ;   
-      }
+    /*
+     Complete this part
+    */
+      
     }
   }
 
@@ -257,23 +183,43 @@ double readInputFile(char *fileName, char* tag){
     return -1;
   }
 
-  int sk = 0; 
-  double result; 
-  char buffer[BUFSIZE];
-  char fileTag[BUFSIZE]; 
-  while(fgets(buffer, BUFSIZE, fp) != NULL){
-    sscanf(buffer, "%s", fileTag);
-    if(strstr(fileTag, tag)){
-      fgets(buffer, BUFSIZE, fp);
-      sscanf(buffer, "%lf", &result); 
-      return result;
-    }
-    sk++;
-  }
+  /* 
+  Complete this function to read the file for given tag
+  */
+}
 
-  if(sk==0){
-    printf("could not find the tag: %s in the file %s\n", tag, fileName);
-  }
+
+/* ************************************************************************** */
+// Time stepper clas RK(4-5)
+// resq = rk4a(stage)* resq + dt*rhsq
+//  q = q + rk4b(stage)*resq
+tstep_t createTimeStepper(int Nnodes){
+  tstep_t tstep; 
+  tstep.Nstage = 5; 
+  tstep.resq = (double *)calloc(Nnodes,sizeof(double)); 
+  tstep.rhsq = (double *)calloc(Nnodes,sizeof(double));
+  tstep.rk4a = (double *)malloc(tstep.Nstage*sizeof(double));
+  tstep.rk4b = (double *)malloc(tstep.Nstage*sizeof(double));
+  tstep.rk4c = (double *)malloc(tstep.Nstage*sizeof(double));
+
+  tstep.rk4a[0] = 0.0; 
+  tstep.rk4a[1] = -567301805773.0/1357537059087.0; 
+  tstep.rk4a[2] = -2404267990393.0/2016746695238.0;
+  tstep.rk4a[3] = -3550918686646.0/2091501179385.0;
+  tstep.rk4a[4] = -1275806237668.0/842570457699.0;
+        
+  tstep.rk4b[0] = 1432997174477.0/9575080441755.0;
+  tstep.rk4b[1] = 5161836677717.0/13612068292357.0; 
+  tstep.rk4b[2] = 1720146321549.0/2090206949498.0;
+  tstep.rk4b[3] = 3134564353537.0/4481467310338.0;
+  tstep.rk4b[4] = 2277821191437.0/14882151754819.0;
+             
+  tstep.rk4c[0] = 0.0;
+  tstep.rk4c[1] = 1432997174477.0/9575080441755.0;
+  tstep.rk4c[2] = 2526269341429.0/6820363962896.0;
+  tstep.rk4c[3] = 2006345519317.0/3224310063776.0;
+  tstep.rk4c[4] = 2802321613138.0/2924317926251.0;
+  return tstep; 
 }
 
 

@@ -10,8 +10,8 @@
 typedef struct{
     int Nnodes, NX, NY; 
     double xmin, xmax, ymin, ymax; 
-    // double dx, dy; 
     double *x, *y; 
+    // Node connectivity 
     int *N2N; 
   }mesh_t;
 
@@ -28,6 +28,7 @@ typedef struct{
     double *q, *u; 
   }solver_t;
 
+  // Function Definitions
   mesh_t createMesh(char *inputFile); 
   tstep_t createTimeStepper(int Nnodes);
   void initialCondition(solver_t *solver);
