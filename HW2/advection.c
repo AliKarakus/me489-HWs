@@ -75,7 +75,7 @@ mesh_t *msh = &solver->msh;
 for(int j=0; j<msh->NY; j++){
     for(int i=0; i<msh->NX; i++){
       /*
-      fill this part tp comute rhsq at every n = j*msh.NX + i
+      fill this part to compute rhsq at every n = j*msh.NX + i
       */
 
 
@@ -83,11 +83,11 @@ for(int j=0; j<msh->NY; j++){
       Time integration in 2 steps 
       Step 1: Update residual
       resq = rk4a(stage)* resq + dt*rhsq
-      Step:2 Update solution ans store
+      Step:2 Update solution and store
        q = q + rk4b(stage)*resq
       */
 
-      // Store updated solution and 
+      // Store updated solutions in solver->q and solver->resq 
 
     }
   }
@@ -184,7 +184,7 @@ double readInputFile(char *fileName, char* tag){
   }
 
   /* 
-  Complete this function to read the file for given tag
+  Complete this function to read the file for the given tag
   */
 }
 

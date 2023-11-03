@@ -28,7 +28,7 @@ typedef struct{
     double *q, *u; 
   }solver_t;
 
-  // Function Definitions
+  // Function definitions
   mesh_t createMesh(char *inputFile); 
   tstep_t createTimeStepper(int Nnodes);
   void initialCondition(solver_t *solver);
