@@ -1,0 +1,41 @@
+#Start time
+[TSART]
+0.0
+
+#End time
+[TEND]
+1.0
+
+#Time step size
+[DT]
+1e-5
+
+# Minumum x coordinate
+[XMIN]
+0.0
+
+#Maximum x xoordinate
+[XMAX]
+1.0
+
+#Minumum y coordinate 
+[YMIN]
+0.0
+
+#Maximum x xoordinate
+[YMAX]
+1.0
+
+# Number of nodes in x direction
+[NX]
+201
+
+
+#number of nodes in y direction
+[NY]
+201
+
+
+# Wrte output in every given time steps
+[OUTPUT_FREQUENCY]
+1000
