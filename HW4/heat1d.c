@@ -129,8 +129,9 @@ void runSolver( int n, int rank, int size ){
 
 
 
-    // Update the solution based on central differantiation.
+    // UPDATE the solution based on central differantiation.
     // qn[i] = q[i] + dt*rhs(q,t)
+    // For OpenMP make this loop parallel also
     for ( int i = 1; i <= n; i++ ){
       // COMPLETE THIS PART
 
@@ -153,6 +154,7 @@ void runSolver( int n, int rank, int size ){
 
   // Update time and field.
     time = time_new;
+    // For OpenMP make this loop parallel also
     for ( int i = 1; i <= n; i++ ){
       q[i] = qn[i];
     }
