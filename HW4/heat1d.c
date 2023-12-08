@@ -82,7 +82,7 @@ void runSolver( int n, int rank, int size ){
 
   // find the coordinates for uniform spacing 
   for ( int i = 0; i <= n + 1; i++ ){
-    // Complete this part
+    // COMPLETE THIS PART
     // x[i] = ....
 
   }
@@ -121,9 +121,7 @@ void runSolver( int n, int rank, int size ){
     time_new = time + step*dt; 
 
     // Perform point to point communications here!!!!
-    // Complete this part!!!!!
-
-
+    // COMPLETE THIS PART
 
 
 
@@ -134,7 +132,7 @@ void runSolver( int n, int rank, int size ){
     // Update the solution based on central differantiation.
     // qn[i] = q[i] + dt*rhs(q,t)
     for ( int i = 1; i <= n; i++ ){
-      // Complete this part!!!!!
+      // COMPLETE THIS PART
 
 
 
@@ -142,9 +140,8 @@ void runSolver( int n, int rank, int size ){
 
   
     // q at the extreme left and right boundaries was incorrectly computed
-    // using the differential equation.  Replace that calculation by
-    // the boundary conditions.
-
+    // using the differential equation.  
+    // Replace that calculation by the boundary conditions.
     // global left endpoint 
     if (rank==0){
       qn[1] = boundary_condition ( x[1], time_new );
