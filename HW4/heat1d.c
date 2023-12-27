@@ -8,21 +8,16 @@
 // Include MPI header
 # include "mpi.h"
 
-// Function definitions
 int main ( int argc, char *argv[] );
 double boundary_condition ( double x, double time );
 double initial_condition ( double x, double time );
 double source ( double x, double time );
 void runSolver( int n, int rank, int size );
 
-
-
 /*-------------------------------------------------------------
   Purpose: Compute number of primes from 1 to N with naive way
  -------------------------------------------------------------*/
-// This function is fully implemented for you!!!!!!
-// usage: mpirun -n 4 heat1d N
-// N    : Number of nodes per processor
+
 int main ( int argc, char *argv[] ){
   int rank, size;
   double wtime;
@@ -59,10 +54,6 @@ void runSolver( int n, int rank, int size ){
 
   // Storage for node coordinates, solution field and next time level values
   double *x, *q, *qn;
-  // Set the x coordinates of the n nodes padded with +2 ghost nodes. 
-  x  = ( double*)malloc((n+2)*sizeof(double));
-  q  = ( double*)malloc((n+2)*sizeof(double));
-  qn = ( double*)malloc((n+2)*sizeof(double));
 
   // Write solution field to text file if size==1 only
   FILE *qfile, *xfile;
@@ -76,15 +67,21 @@ void runSolver( int n, int rank, int size ){
   int Nsteps = ceil(( tend - tstart )/dt);
   dt =  ( tend - tstart )/(( double )(Nsteps)); 
 
+
   int tag;
   MPI_Status status;
   double time, time_new, wtime;  
 
+  // Set the x coordinates of the n nodes padded with +2 ghost nodes. 
+  x  = ( double*)malloc((n+2)*sizeof(double));
+  q  = ( double*)malloc((n+2)*sizeof(double));
+  qn = ( double*)malloc((n+2)*sizeof(double));
+
   // find the coordinates for uniform spacing 
   for ( int i = 0; i <= n + 1; i++ ){
-    // COMPLETE THIS PART
-    // x[i] = ....
-
+    x[i] = ( ( double ) ( rank * n + i - 1) * x_max
+           + ( double ) ( size * n - rank * n - i) * x_min )
+           / ( double ) ( size * n - 1 );
   }
 
   // Set the values of q at the initial time.
@@ -103,6 +100,7 @@ void runSolver( int n, int rank, int size ){
     }
     fprintf ( xfile, "\n" );
     fclose ( xfile );
+
     // write out the initial solution for display.
     qfile = fopen ( "q_data.txt", "w" );
     for ( int i = 1; i <= n; i++ ){
@@ -110,7 +108,6 @@ void runSolver( int n, int rank, int size ){
     }
     fprintf ( qfile, "\n" );
   }
-
 
  // Record the starting time.
   wtime = MPI_Wtime();
@@ -120,29 +117,38 @@ void runSolver( int n, int rank, int size ){
 
     time_new = time + step*dt; 
 
-    // Perform point to point communications here!!!!
-    // COMPLETE THIS PART
-
-
-
-
-
-
-
-    // UPDATE the solution based on central differantiation.
-    // qn[i] = q[i] + dt*rhs(q,t)
-    // For OpenMP make this loop parallel also
-    for ( int i = 1; i <= n; i++ ){
-      // COMPLETE THIS PART
-
-
-
+  // Send q[1] to ID-1 and receive q[N+1] from ID+1..
+    if (rank > 0){
+      tag = 1;
+      MPI_Send ( &q[1], 1, MPI_DOUBLE, rank-1, tag, MPI_COMM_WORLD );
+    }
+    if (rank < size-1 ){
+      tag = 1;
+      MPI_Recv ( &q[n+1], 1,  MPI_DOUBLE, rank+1, tag, MPI_COMM_WORLD, &status );
     }
 
-  
-    // q at the extreme left and right boundaries was incorrectly computed
-    // using the differential equation.  
-    // Replace that calculation by the boundary conditions.
+
+  // Send q[N] to ID+1 and receive q[0] from ID-1..
+    if (rank < size-1 ){
+      tag = 2;
+      MPI_Send ( &q[n], 1, MPI_DOUBLE, rank+1, tag, MPI_COMM_WORLD );
+    }
+    if (rank > 0 ){
+      tag = 2;
+      MPI_Recv ( &q[0], 1, MPI_DOUBLE, rank-1, tag, MPI_COMM_WORLD, &status );
+    }
+
+  // Update the solution based on central differantiation.
+    for ( int i = 1; i <= n; i++ ){
+      qn[i] = q[i] 
+      + (dt * k / dx / dx ) * ( q[i-1] - 2.0 * q[i] + q[i+1] ) 
+      + dt * source ( x[i], time );
+    }
+
+  // q at the extreme left and right boundaries was incorrectly computed
+  // using the differential equation.  Replace that calculation by
+  // the boundary conditions.
+
     // global left endpoint 
     if (rank==0){
       qn[1] = boundary_condition ( x[1], time_new );
@@ -154,7 +160,6 @@ void runSolver( int n, int rank, int size ){
 
   // Update time and field.
     time = time_new;
-    // For OpenMP make this loop parallel also
     for ( int i = 1; i <= n; i++ ){
       q[i] = qn[i];
     }
